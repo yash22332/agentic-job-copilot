@@ -1,0 +1,18 @@
+Yash Gupta
+
+Software Engineer
+
+Skills:
+Python
+SQL
+FastAPI
+LangGraph
+Git
+
+Experience:
+IBM
+Software Engineer
+2 Years
+
+Education:
+Bachelor of Engineering
