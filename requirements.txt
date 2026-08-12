@@ -2,3 +2,6 @@ pytest>=8.0.0
 python-dotenv>=1.0.0
 pydantic 
 pdfplumber
+fastapi
+uvicorn     
+python-multipart
