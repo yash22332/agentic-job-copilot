@@ -39,14 +39,14 @@ Application entry point.
 from app.llm import LLMClient
 from app.services.resume_service import ResumeService
 
-
-def main() -> None:
+def main(llm_client: LLMClient | None = None) -> None:
     """Run the resume analysis application."""
 
-    llm_client = LLMClient()
+    if llm_client is None:
+        llm_client = LLMClient()
 
     resume_service = ResumeService(
-        llm_client=llm_client,
+    llm_client=llm_client,
     )
 
     result = resume_service.analyze(
