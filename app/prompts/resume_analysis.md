@@ -40,3 +40,9 @@ Use this structure exactly:
 Resume:
 
 {{resume_text}}
+
+For email and phone fields:
+- Return plain text only.
+- Do not use Markdown.
+- Do not use mailto links.
+- Do not add formatting.

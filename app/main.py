@@ -50,7 +50,7 @@ def main(llm_client: LLMClient | None = None) -> None:
     )
 
     result = resume_service.analyze(
-        "data/sample_resume.txt"
+        "data/sample_resume.pdf"
     )
 
     print("Resume Analysis:")
