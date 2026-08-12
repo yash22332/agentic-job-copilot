@@ -30,11 +30,13 @@
     # if __name__ == "__main__":
     #     main()
 
+import json
+
+from app.llm import LLMClient
 from app.prompt_loader import load_prompt
 from app.prompt_builder import build_prompt
 from app.resume_parser import parse_resume
-from app.llm import LLMClient
-
+from app.models.resume import ResumeAnalysis
 
 def main():
 
@@ -51,7 +53,17 @@ def main():
 
     response = client.generate(prompt)
 
+    print("Raw Gemini Response:")
     print(response)
+
+    print("\nTrying to parse JSON...\n")
+
+    data = json.loads(response)
+    
+    resume_analysis = ResumeAnalysis.model_validate(data)
+
+    print("\nValidated Resume Analysis:")
+    print(resume_analysis)
 
 
 if __name__ == "__main__":

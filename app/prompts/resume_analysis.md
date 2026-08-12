@@ -4,19 +4,38 @@ You are an expert technical recruiter.
 
 Analyze the following resume.
 
-Extract:
+Return ONLY valid JSON.
 
-- Candidate Name
-- Email
-- Phone Number
-- Technical Skills
-- Soft Skills
-- Work Experience
-- Education
-- Certifications
-- Projects
+Do not include markdown.
 
-Return the answer in a clean and readable format.
+Do not include explanation.
+
+Use this structure exactly:
+
+{
+  "contact": {
+    "name": "",
+    "email": "",
+    "phone": ""
+  },
+  "skills": [
+    {
+      "name": ""
+    }
+  ],
+  "experience": [
+    {
+      "company": "",
+      "role": "",
+      "duration": ""
+    }
+  ],
+  "education": [
+    {
+      "degree": ""
+    }
+  ]
+}
 
 Resume:
 
