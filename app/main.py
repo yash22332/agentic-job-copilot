@@ -30,40 +30,31 @@
     # if __name__ == "__main__":
     #     main()
 
-import json
+
+
+"""
+Application entry point.
+"""
 
 from app.llm import LLMClient
-from app.prompt_loader import load_prompt
-from app.prompt_builder import build_prompt
-from app.resume_parser import parse_resume
-from app.models.resume import ResumeAnalysis
+from app.services.resume_service import ResumeService
 
-def main():
 
-    resume = parse_resume("data/sample_resume.txt")
+def main() -> None:
+    """Run the resume analysis application."""
 
-    template = load_prompt("resume_analysis.md")
+    llm_client = LLMClient()
 
-    prompt = build_prompt(
-        template,
-        resume_text=resume
+    resume_service = ResumeService(
+        llm_client=llm_client,
     )
 
-    client = LLMClient()
+    result = resume_service.analyze(
+        "data/sample_resume.txt"
+    )
 
-    response = client.generate(prompt)
-
-    print("Raw Gemini Response:")
-    print(response)
-
-    print("\nTrying to parse JSON...\n")
-
-    data = json.loads(response)
-    
-    resume_analysis = ResumeAnalysis.model_validate(data)
-
-    print("\nValidated Resume Analysis:")
-    print(resume_analysis)
+    print("Resume Analysis:")
+    print(result)
 
 
 if __name__ == "__main__":
