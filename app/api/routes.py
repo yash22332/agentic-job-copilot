@@ -45,9 +45,13 @@
 """
 HTTP routes for the Agentic Job Copilot.
 """
+import json
 
+from fastapi import Form, HTTPException
 from pathlib import Path
 from uuid import uuid4
+from app.models.job import JobDescription
+from app.services.job_match_service import JobMatchService
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
@@ -89,5 +93,58 @@ async def analyze_resume(
     file_path.write_bytes(contents)
 
     result = resume_service.analyze(str(file_path))
+
+    return result
+
+def get_job_match_service() -> JobMatchService:
+    """Create the job matching service used by API routes."""
+    return JobMatchService(llm_client=LLMClient())
+
+
+@router.post("/jobs/match")
+async def match_job(
+    file: UploadFile = File(...),
+    job: str = Form(...),
+    resume_service: ResumeService = Depends(get_resume_service),
+    job_match_service: JobMatchService = Depends(get_job_match_service),
+):
+    """Match an uploaded resume against a job description."""
+
+    file_extension = Path(file.filename or "").suffix.lower()
+
+    if file_extension != ".pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF resumes are supported.",
+        )
+
+    try:
+        job_data = json.loads(job)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Job must be valid JSON.",
+        ) from exc
+
+    try:
+        job_description = JobDescription.model_validate(job_data)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid job description: {exc}",
+        ) from exc
+
+    file_path = UPLOAD_DIR / f"{uuid4()}{file_extension}"
+
+    contents = await file.read()
+    file_path.write_bytes(contents)
+
+    resume = resume_service.analyze(str(file_path))
+
+   
+    result = job_match_service.analyze(
+        resume=resume,
+        job=job_description,
+    )
 
     return result
