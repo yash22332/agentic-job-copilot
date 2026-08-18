@@ -14,28 +14,30 @@ server_params = StdioServerParameters(
 )
 
 
-async def main() -> None:
-    """Connect to the MCP server and call a tool."""
+async def get_company_info(company_name: str) -> str:
+    """Call the MCP company information tool."""
 
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
 
-            tools = await session.list_tools()
-
-            print("Available tools:")
-            for tool in tools.tools:
-                print(f"- {tool.name}")
-
             result = await session.call_tool(
                 "get_company_info",
-                {"company_name": "IBM"},
+                {"company_name": company_name},
             )
 
-            print("\nTool result:")
             for content in result.content:
                 if hasattr(content, "text"):
-                    print(content.text)
+                    return content.text
+
+    return "No company information returned."
+
+
+async def main() -> None:
+    """Test the MCP client."""
+
+    info = await get_company_info("IBM")
+    print(info)
 
 
 if __name__ == "__main__":
