@@ -1,33 +1,19 @@
-import asyncio
+
 from typing import TypedDict
 from app.models.job import JobDescription, JobMatch
 from app.models.resume import ResumeAnalysis
 from langgraph.graph import END, START, StateGraph
 from app.llm import LLMClient
 from app.services.job_match_service import JobMatchService
-from app.mcp.client import get_company_info
+
 
 class JobMatchState(TypedDict, total=False):
     resume: ResumeAnalysis
     job: JobDescription
     match: JobMatch
     match_category: str
-    company_info: str
 
-def company_info_node(
-    state: JobMatchState,
-) -> dict[str, str]:
-    """Retrieve company information through MCP."""
 
-    company_name = state["job"].company
-
-    company_info = asyncio.run(
-        get_company_info(company_name)
-    )
-
-    return {
-        "company_info": company_info,
-    }
 
 def create_job_match_node(llm_client: LLMClient):
     """Create a LangGraph node for job matching."""
@@ -86,28 +72,13 @@ def needs_improvement_node(
         "match_category": "needs_improvement",
     }
 
-# def build_job_match_graph(llm_client: LLMClient):
-#     """Build and compile the job matching workflow."""
-
-#     graph = StateGraph(JobMatchState)
-
-#     job_match_node = create_job_match_node(llm_client)
-
-#     graph.add_node("job_match", job_match_node)
-
-#     graph.add_edge(START, "job_match")
-#     graph.add_edge("job_match", END)
-
-#     return graph.compile() 
-
-
 def build_job_match_graph(llm_client: LLMClient):
     """Build and compile the job matching workflow."""
 
     graph = StateGraph(JobMatchState)
 
     job_match_node = create_job_match_node(llm_client)
-    graph.add_node("company_info", company_info_node)
+    
     graph.add_node("job_match", job_match_node)
     graph.add_node("evaluate_match", evaluate_match_node)
     graph.add_node("strong_match", strong_match_node)
@@ -115,10 +86,11 @@ def build_job_match_graph(llm_client: LLMClient):
         "needs_improvement",
         needs_improvement_node,
     )
+   
 
-    graph.add_edge(START, "company_info")
-    graph.add_edge("company_info", "job_match")
+    graph.add_edge(START, "job_match")
     graph.add_edge("job_match", "evaluate_match")
+   
     
     graph.add_conditional_edges(
         "evaluate_match",

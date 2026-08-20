@@ -1,5 +1,5 @@
 """
-MCP server for Agentic Job Copilot tools.
+MCP server for Agentic Job Copilot.
 """
 
 from mcp.server import MCPServer
@@ -8,35 +8,74 @@ from mcp.server import MCPServer
 mcp = MCPServer("Job Copilot Tools")
 
 
+JOBS = [
+    {
+        "title": "Python AI Engineer",
+        "company": "Example AI Labs",
+        "location": "Bangalore",
+        "description": (
+            "Build AI applications using Python, FastAPI, "
+            "LangGraph and LLM APIs."
+        ),
+        "url": "https://example.com/jobs/python-ai-engineer",
+        "salary": "₹10-15 LPA",
+    },
+    {
+        "title": "GenAI Engineer",
+        "company": "Cloud AI Systems",
+        "location": "Hyderabad",
+        "description": (
+            "Develop RAG pipelines, agentic workflows and "
+            "MCP integrations."
+        ),
+        "url": "https://example.com/jobs/genai-engineer",
+        "salary": "₹12-18 LPA",
+    },
+    {
+        "title": "Backend Python Developer",
+        "company": "Tech Solutions",
+        "location": "Pune",
+        "description": (
+            "Develop REST APIs using Python, FastAPI and PostgreSQL."
+        ),
+        "url": "https://example.com/jobs/python-backend",
+        "salary": "₹8-12 LPA",
+    },
+]
+
+
 @mcp.tool()
-def get_company_info(company_name: str) -> str:
+def search_jobs(
+    query: str,
+    location: str = "",
+) -> list[dict[str, str]]:
     """
-    Return basic company information.
+    Search available jobs by keyword and location.
 
-    Args:
-        company_name: Name of the company to look up.
-
-    Returns:
-        Basic company information.
+    The tool returns only the fields required by Job Copilot.
     """
 
-    companies = {
-        "IBM": (
-            "IBM is a technology company focused on cloud computing, "
-            "AI, software, and enterprise technology."
-        ),
-        "Microsoft": (
-            "Microsoft is a technology company focused on software, "
-            "cloud computing, AI, and developer platforms."
-        ),
-    }
+    query_lower = query.lower()
+    location_lower = location.lower()
 
-    return companies.get(
-        company_name,
-        f"No company information is available for {company_name}.",
-    )
+    results = []
+
+    for job in JOBS:
+        matches_query = (
+            query_lower in job["title"].lower()
+            or query_lower in job["description"].lower()
+        )
+
+        matches_location = (
+            not location_lower
+            or location_lower in job["location"].lower()
+        )
+
+        if matches_query and matches_location:
+            results.append(job)
+
+    return results
 
 
 if __name__ == "__main__":
     mcp.run()
-    

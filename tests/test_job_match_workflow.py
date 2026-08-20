@@ -11,6 +11,7 @@ from app.models.resume import (
 from app.workflows.job_match_workflow import build_job_match_graph
 
 
+
 class FakeLLMClient:
     """Deterministic LLM client for workflow testing."""
 
@@ -129,3 +130,4 @@ def test_weak_job_match() -> None:
     assert result["match"].match_score == 50
     assert result["match_category"] == "needs_improvement"
     assert "Docker" in result["match"].missing_skills
+
