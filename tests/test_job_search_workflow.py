@@ -24,7 +24,7 @@
 #     assert "url" in first_job
 
 import json
-
+import asyncio
 from app.workflows.job_search_workflow import build_job_search_graph
 from app.models.resume import(
     ContactInfo,
@@ -44,19 +44,28 @@ class FakeLLMClient:
         return json.dumps(
             {
                 "recommendations": [
-                    {
-                        "job_role": "Python AI Engineer",
-                        "experience": "2+ years",
-                        "skills_required": [
-                            "Python",
-                            "FastAPI",
-                            "LangGraph",
-                        ],
-                        "location": "Bangalore",
-                        "salary": "₹10-15 LPA",
-                        "relevance_score": 92,
-                        "reasons": [
-                            "Strong Python and FastAPI alignment."
+                {
+                    "job_role": "Python AI Engineer",
+                    "company": "Example AI Labs",
+                    "description": (
+                    "Build AI applications using Python, "
+                    "FastAPI, LangGraph and LLM APIs."
+                    ),
+                    "experience": "2+ years",
+                    "skills_required": [
+                        "Python",
+                        "FastAPI",
+                        "LangGraph",
+                    ],
+                    "location": "Bangalore",
+                    "salary": "₹10-15 LPA",
+                    "url": (
+                        "https://example.com/jobs/"
+                        "python-ai-engineer"
+                    ),
+                    "relevance_score": 92,
+                    "reasons": [
+                        "Strong Python and FastAPI alignment."
                         ],
                     }
                 ]
@@ -90,12 +99,14 @@ def test_job_search_workflow():
         llm_client=FakeLLMClient(),
     )
 
-    result = graph.invoke(
-        {
-            "query": "Python",
-            "location": "Bangalore",
-            "resume": resume,
-        }
+    result = asyncio.run(
+    graph.ainvoke(
+            {
+                "query": "Python",
+                "location": "Bangalore",
+                "resume": resume,
+            }
+        )
     )
 
     assert result["jobs"]

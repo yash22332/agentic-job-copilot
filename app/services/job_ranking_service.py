@@ -40,6 +40,8 @@ class JobRankingService:
 
         response = self._llm_client.generate(prompt)
 
+        print("\n--- RAW JOB RANKING RESPONSE ---")
+        response = self._llm_client.generate(prompt)
         data = json.loads(response)
 
         return JobRecommendations.model_validate(data)

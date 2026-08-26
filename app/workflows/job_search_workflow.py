@@ -1,4 +1,4 @@
-import asyncio
+
 from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 from app.mcp.client import search_jobs
@@ -14,16 +14,14 @@ class JobSearchState(TypedDict, total=False):
     jobs: list[dict[str, str]]
     recommendations: JobRecommendations
 
-def search_jobs_node(
+async def search_jobs_node(
     state: JobSearchState,
 ) -> dict[str, list[dict[str, str]]]:
     """Search for jobs through the MCP server."""
 
-    jobs = asyncio.run(
-        search_jobs(
-            query=state["query"],
-            location=state.get("location", ""),
-        )
+    jobs = await search_jobs(
+        query=state["query"],
+        location=state.get("location", ""),
     )
 
     return {
