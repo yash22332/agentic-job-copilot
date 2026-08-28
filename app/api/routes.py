@@ -62,7 +62,7 @@ from fastapi import Form
 
 from app.models.resume import ResumeAnalysis
 from app.workflows.job_search_workflow import build_job_search_graph
-from app.dev_llm import FakeLLMClient
+from app.llm_factory import create_llm_client
 router = APIRouter()
 
 UPLOAD_DIR = Path("data/uploads")
@@ -75,7 +75,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 def get_resume_service() -> ResumeService:
     """Create the resume service used by API routes."""
-    return ResumeService(llm_client=FakeLLMClient())
+    return ResumeService(llm_client=create_llm_client())
 
 @router.get("/health")
 def health_check() -> dict[str, str]:
@@ -110,7 +110,7 @@ async def analyze_resume(
 
 def get_job_match_service() -> JobMatchService:
     """Create the job matching service used by API routes."""
-    return JobMatchService(llm_client=FakeLLMClient())
+    return JobMatchService(llm_client=create_llm_client())
 
 @router.post("/jobs/match")
 async def match_job(
@@ -190,7 +190,7 @@ async def search_jobs_route(
     # )
 
     graph = build_job_search_graph(
-    llm_client=FakeLLMClient(),
+    llm_client=create_llm_client(),
 )
 
     result = await graph.ainvoke(
