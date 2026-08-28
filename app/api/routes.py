@@ -1,47 +1,3 @@
-# """
-# HTTP routes for the Agentic Job Copilot.
-# """
-
-# from pathlib import Path
-# from uuid import uuid4
-
-# from fastapi import APIRouter, File, UploadFile
-
-# from app.llm import LLMClient
-# from app.services.resume_service import ResumeService
-
-# router = APIRouter()
-
-# UPLOAD_DIR = Path("data/uploads")
-# UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# @router.get("/health")
-# def health_check() -> dict[str, str]:
-#     """Return a simple health status."""
-#     return {"status": "ok"}
-
-
-# @router.post("/resumes/analyze")
-# async def analyze_resume(file: UploadFile = File(...)):
-#     """Analyze an uploaded resume PDF."""
-
-#     file_extension = Path(file.filename or "").suffix.lower()
-
-#     if file_extension != ".pdf":
-#         return {"error": "Only PDF resumes are supported."}
-
-#     file_path = UPLOAD_DIR / f"{uuid4()}{file_extension}"
-
-#     contents = await file.read()
-#     file_path.write_bytes(contents)
-
-#     llm_client = LLMClient()
-#     resume_service = ResumeService(llm_client=llm_client)
-
-#     result = resume_service.analyze(str(file_path))
-
-#     return result
 """
 HTTP routes for the Agentic Job Copilot.
 """
@@ -55,12 +11,7 @@ from app.services.job_match_service import JobMatchService
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from app.llm import LLMClient
 from app.services.resume_service import ResumeService
-
-from fastapi import Form
-
-from app.models.resume import ResumeAnalysis
 from app.workflows.job_search_workflow import build_job_search_graph
 from app.llm_factory import create_llm_client
 router = APIRouter()
@@ -68,10 +19,6 @@ router = APIRouter()
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-
-# def get_resume_service() -> ResumeService:
-#     """Create the resume service used by API routes."""
-#     return ResumeService(llm_client=LLMClient())
 
 def get_resume_service() -> ResumeService:
     """Create the resume service used by API routes."""
@@ -93,20 +40,22 @@ async def analyze_resume(
     file_extension = Path(file.filename or "").suffix.lower()
 
     if file_extension != ".pdf":
-        return {"error": "Only PDF resumes are supported."}
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF resumes are supported.",
+        )
 
     file_path = UPLOAD_DIR / f"{uuid4()}{file_extension}"
 
     contents = await file.read()
     file_path.write_bytes(contents)
 
-    result = resume_service.analyze(str(file_path))
+    try:
+        result = resume_service.analyze(str(file_path))
+        return result
+    finally:
+        file_path.unlink(missing_ok=True)
 
-    return result
-
-# def get_job_match_service() -> JobMatchService:
-#     """Create the job matching service used by API routes."""
-#     return JobMatchService(llm_client=LLMClient())
 
 def get_job_match_service() -> JobMatchService:
     """Create the job matching service used by API routes."""
@@ -150,15 +99,19 @@ async def match_job(
     contents = await file.read()
     file_path.write_bytes(contents)
 
-    resume = resume_service.analyze(str(file_path))
+    try:
+        resume = resume_service.analyze(str(file_path))
 
-   
-    result = job_match_service.analyze(
-        resume=resume,
-        job=job_description,
-    )
+        result = job_match_service.analyze(
+            resume=resume,
+            job=job_description,
+        )
 
-    return result
+        return result
+    finally:
+        file_path.unlink(missing_ok=True)
+
+
 
 @router.post("/jobs/search")
 async def search_jobs_route(
@@ -182,23 +135,26 @@ async def search_jobs_route(
     contents = await file.read()
     file_path.write_bytes(contents)
 
-    resume = resume_service.analyze(str(file_path))
+    try:
+        resume = resume_service.analyze(str(file_path))
 
-    # Use the same shared LLM client as the resume service.
-    # graph = build_job_search_graph(
-    #     llm_client = resume_service._llm_client,
-    # )
+        graph = build_job_search_graph(
+            llm_client=create_llm_client(),
+        )
 
-    graph = build_job_search_graph(
-    llm_client=create_llm_client(),
-)
+        result = await graph.ainvoke(
+            {
+                "query": query,
+                "location": location,
+                "resume": resume,
+            }
+        )
 
-    result = await graph.ainvoke(
-        {
-            "query": query,
-            "location": location,
-            "resume": resume,
+        return {
+            "recommendations": (
+            result["recommendations"].recommendations
+            )
         }
-    )
 
-    return result["recommendations"]
+    finally:
+        file_path.unlink(missing_ok=True)
