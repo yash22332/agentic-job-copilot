@@ -62,17 +62,20 @@ from fastapi import Form
 
 from app.models.resume import ResumeAnalysis
 from app.workflows.job_search_workflow import build_job_search_graph
-
+from app.dev_llm import FakeLLMClient
 router = APIRouter()
 
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+# def get_resume_service() -> ResumeService:
+#     """Create the resume service used by API routes."""
+#     return ResumeService(llm_client=LLMClient())
+
 def get_resume_service() -> ResumeService:
     """Create the resume service used by API routes."""
-    return ResumeService(llm_client=LLMClient())
-
+    return ResumeService(llm_client=FakeLLMClient())
 
 @router.get("/health")
 def health_check() -> dict[str, str]:
@@ -101,10 +104,13 @@ async def analyze_resume(
 
     return result
 
+# def get_job_match_service() -> JobMatchService:
+#     """Create the job matching service used by API routes."""
+#     return JobMatchService(llm_client=LLMClient())
+
 def get_job_match_service() -> JobMatchService:
     """Create the job matching service used by API routes."""
-    return JobMatchService(llm_client=LLMClient())
-
+    return JobMatchService(llm_client=FakeLLMClient())
 
 @router.post("/jobs/match")
 async def match_job(
@@ -179,9 +185,13 @@ async def search_jobs_route(
     resume = resume_service.analyze(str(file_path))
 
     # Use the same shared LLM client as the resume service.
+    # graph = build_job_search_graph(
+    #     llm_client = resume_service._llm_client,
+    # )
+
     graph = build_job_search_graph(
-        llm_client = resume_service._llm_client,
-    )
+    llm_client=FakeLLMClient(),
+)
 
     result = await graph.ainvoke(
         {

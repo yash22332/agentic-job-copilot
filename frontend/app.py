@@ -3,6 +3,9 @@ import streamlit as st
 import json
 
 
+if "recommendations" not in st.session_state:
+    st.session_state.recommendations = []
+    
 API_URL = "http://127.0.0.1:8000"
 
 
@@ -90,85 +93,85 @@ if uploaded_file is not None:
                 f"{response.text}"
             )
 
-st.divider()
+# st.divider()
 
-st.header("🎯 Job Match Analysis")
+# st.header("🎯 Job Match Analysis")
 
-job_title = st.text_input("Job Title")
-job_company = st.text_input("Company")
-job_location = st.text_input("Location")
-job_experience = st.text_input("Experience Required")
-job_description = st.text_area("Job Description")
+# job_title = st.text_input("Job Title")
+# job_company = st.text_input("Company")
+# job_location = st.text_input("Location")
+# job_experience = st.text_input("Experience Required")
+# job_description = st.text_area("Job Description")
 
-job_skills = st.text_input(
-    "Required Skills",
-    placeholder="Python, FastAPI, LangGraph, Docker",
-)
+# job_skills = st.text_input(
+#     "Required Skills",
+#     placeholder="Python, FastAPI, LangGraph, Docker",
+# )
 
-if uploaded_file is not None and st.button("Analyze Job Match"):
+# if uploaded_file is not None and st.button("Analyze Job Match"):
 
-    required_skills = [
-        skill.strip()
-        for skill in job_skills.split(",")
-        if skill.strip()
-    ]
+#     required_skills = [
+#         skill.strip()
+#         for skill in job_skills.split(",")
+#         if skill.strip()
+#     ]
 
-    job_data = {
-        "title": job_title,
-        "company": job_company,
-        "description": job_description,
-        "location": job_location,
-        "experience_required": job_experience,
-        "required_skills": required_skills,
-    }
+#     job_data = {
+#         "title": job_title,
+#         "company": job_company,
+#         "description": job_description,
+#         "location": job_location,
+#         "experience_required": job_experience,
+#         "required_skills": required_skills,
+#     }
 
-    with st.spinner("Analyzing job match..."):
+#     with st.spinner("Analyzing job match..."):
 
-        response = requests.post(
-            f"{API_URL}/jobs/match",
-            files={
-                "file": (
-                    uploaded_file.name,
-                    uploaded_file.getvalue(),
-                    "application/pdf",
-                )
-            },
-            data={
-                "job": json.dumps(job_data),
-            },
-            timeout=120,
-        )
+#         response = requests.post(
+#             f"{API_URL}/jobs/match",
+#             files={
+#                 "file": (
+#                     uploaded_file.name,
+#                     uploaded_file.getvalue(),
+#                     "application/pdf",
+#                 )
+#             },
+#             data={
+#                 "job": json.dumps(job_data),
+#             },
+#             timeout=120,
+#         )
 
-    if response.status_code == 200:
+#     if response.status_code == 200:
 
-        result = response.json()
+#         result = response.json()
 
-        st.success("Job match analysis completed!")
+#         st.success("Job match analysis completed!")
 
-        st.metric(
-            "Match Score",
-            f"{result['match_score']}/100",
-        )
+#         st.metric(
+#             "Match Score",
+#             f"{result['match_score']}/100",
+#         )
 
-        st.subheader("✅ Matching Skills")
-        st.write(", ".join(result["matching_skills"]))
+#         st.subheader("✅ Matching Skills")
+#         st.write(", ".join(result["matching_skills"]))
 
-        st.subheader("❌ Missing Skills")
-        st.write(", ".join(result["missing_skills"]))
+#         st.subheader("❌ Missing Skills")
+#         st.write(", ".join(result["missing_skills"]))
 
-        st.subheader("Experience Match")
-        st.write(result["experience_match"])
+#         st.subheader("Experience Match")
+#         st.write(result["experience_match"])
 
-        st.subheader("Recommendations")
+#         st.subheader("Recommendations")
 
-        for recommendation in result["recommendations"]:
-            st.write(f"- {recommendation}")
+#         for recommendation in result["recommendations"]:
+#             st.write(f"- {recommendation}")
 
-    else:
-        st.error(
-            f"API error: {response.status_code}\n\n"
-            f"{response.text}"
-        )
+#     else:
+#         st.error(
+#             f"API error: {response.status_code}\n\n"
+#             f"{response.text}"
+#         )
 
 st.divider()
 
@@ -190,7 +193,7 @@ search_keywords = st.text_input(
 )
 
 if st.button("Find Jobs"):
-
+    
     query = search_title.strip()
 
     if search_keywords.strip():
@@ -198,11 +201,22 @@ if st.button("Find Jobs"):
 
     if not query:
         st.warning("Please enter a job title or keyword.")
+
+    elif uploaded_file is None:
+        st.warning("Please upload a resume first.")
+
     else:
         with st.spinner("Searching and ranking jobs..."):
 
             response = requests.post(
                 f"{API_URL}/jobs/search",
+                files={
+                    "file": (
+                        uploaded_file.name,
+                        uploaded_file.getvalue(),
+                        "application/pdf",
+                    )
+                },
                 data={
                     "query": query,
                     "location": search_location.strip(),
@@ -211,137 +225,136 @@ if st.button("Find Jobs"):
             )
 
         if response.status_code == 200:
-
             result = response.json()
 
-            recommendations = result.get(
+            st.session_state.recommendations = result.get(
                 "recommendations",
-                []
+                [],
             )
-
-            if not recommendations:
-                st.info("No matching jobs found.")
-            else:
-                st.success(
-                    f"Found {len(recommendations)} recommended jobs."
-                )
-
-                for index, job in enumerate(
-                    recommendations,
-                    start=1,
-                ):
-
-                    st.subheader(
-                        f"{index}. {job['job_role']}"
-                    )
-
-                    st.write(
-                        f"**Match:** "
-                        f"{job['relevance_score']}/100"
-                    )
-
-                    st.write(
-                        f"**Location:** {job['location']}"
-                    )
-
-                    st.write(
-                        f"**Experience:** "
-                        f"{job['experience']}"
-                    )
-
-                    st.write(
-                        f"**Salary:** {job['salary']}"
-                    )
-
-                    st.write(
-                        "**Skills:** "
-                        + ", ".join(
-                            job["skills_required"]
-                        )
-                    )
-
-                    st.write("**Why:**")
-
-                    if st.button(
-                        "Analyze Match",
-                        key=f"analyze_match_{index}",
-                    ):
-                        with st.spinner("Analyzing your resume against this job..."):
-
-                            response = requests.post(
-                                f"{API_URL}/jobs/match",
-                                files={
-                                    "file": (
-                                        uploaded_file.name,
-                                        uploaded_file.getvalue(),
-                                        "application/pdf",
-                                    )
-                                },
-                                 data={
-                                    "job": json.dumps(
-                                         {
-                                            "title": job["job_role"],
-                                            "company": job.get("company", ""),
-                                            "description": job.get(
-                                                "description",
-                                                "",
-                                            ),
-                                            "location": job["location"],
-                                            "experience_required": job[
-                                                "experience"
-                                            ],
-                                            "required_skills": job[
-                                                "skills_required"
-                                            ],
-                                        }
-                                    ),
-                                },
-                                timeout=120,
-                            )
-
-    if response.status_code == 200:
-        match = response.json()
-
-        st.success("Match analysis completed!")
-
-        st.metric(
-            "Match Score",
-            f"{match['match_score']}/100",
-        )
-
-        st.write(
-            "**Matching Skills:** "
-            + ", ".join(match["matching_skills"])
-        )
-
-        st.write(
-            "**Missing Skills:** "
-            + ", ".join(match["missing_skills"])
-        )
-
-        st.write(
-            "**Experience Match:** "
-            + match["experience_match"]
-        )
-
-        st.write("**Recommendations:**")
-
-        for recommendation in match["recommendations"]:
-            st.write(f"- {recommendation}")
-
-    else:
-        st.error(
-            f"API error: {response.status_code}\n\n"
-            f"{response.text}"
-        )
-
-        for reason in job["reasons"]:
-            st.write(f"- {reason}")
-
-            st.divider()
 
         else:
             st.error(
                 f"API error: {response.status_code}\n\n"
                 f"{response.text}"
             )
+
+
+# Display recommendations outside the Find Jobs button
+recommendations = st.session_state.recommendations
+
+if recommendations:
+
+    st.success(
+        f"Found {len(recommendations)} recommended jobs."
+    )
+
+    for index, job in enumerate(
+        recommendations,
+        start=1,
+    ):
+        st.subheader(
+            f"{index}. {job['job_role']}"
+        )
+
+        st.write(
+            f"**Company:** {job['company']}"
+        )
+
+        st.write(
+            f"**Relevance:** {job['relevance_score']}/100"
+        )
+
+        st.write(
+            f"**Location:** {job['location']}"
+        )
+
+        st.write(
+            f"**Experience:** {job['experience']}"
+        )
+
+        st.write(
+            f"**Salary:** {job['salary']}"
+        )
+
+        st.write(
+            "**Skills:** "
+            + ", ".join(job["skills_required"])
+        )
+
+        st.write("**Why:**")
+
+        for reason in job["reasons"]:
+            st.write(f"- {reason}")
+
+        if st.button(
+            "Analyze Match",
+            key=f"analyze_match_{index}",
+        ):
+            st.info("Analyze Match button clicked.")
+
+            job_data = {
+                "title": job["job_role"],
+                "company": job["company"],
+                "description": job["description"],
+                "location": job["location"],
+                "experience_required": job["experience"],
+                "required_skills": job["skills_required"],
+            }
+
+            with st.spinner(
+                "Analyzing your resume against this job..."
+            ):
+                match_response = requests.post(
+                    f"{API_URL}/jobs/match",
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            "application/pdf",
+                        )
+                    },
+                    data={
+                        "job": json.dumps(job_data),
+                    },
+                    timeout=120,
+                )
+
+            if match_response.status_code == 200:
+
+                match = match_response.json()
+
+                st.success("Match analysis completed!")
+
+                st.metric(
+                    "Resume Match Score",
+                    f"{match['match_score']}/100",
+                )
+
+                st.write(
+                    "**Matching Skills:** "
+                    + ", ".join(match["matching_skills"])
+                )
+
+                st.write(
+                    "**Missing Skills:** "
+                    + ", ".join(match["missing_skills"])
+                )
+
+                st.write(
+                    "**Experience Match:** "
+                    + match["experience_match"]
+                )
+
+                st.write("**Recommendations:**")
+
+                for recommendation in match["recommendations"]:
+                    st.write(f"- {recommendation}")
+
+            else:
+                st.error(
+                    f"API error: "
+                    f"{match_response.status_code}\n\n"
+                    f"{match_response.text}"
+                )
+
+        st.divider()

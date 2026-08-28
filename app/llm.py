@@ -33,5 +33,5 @@ class LLMClient:
             model=self._model,
             contents=prompt,
         )
-
+    
         return response.text
