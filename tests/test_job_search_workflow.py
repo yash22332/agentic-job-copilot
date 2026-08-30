@@ -1,28 +1,3 @@
-# from app.workflows.job_search_workflow import build_job_search_graph
-
-
-# def test_job_search_workflow():
-#     """Job search workflow should retrieve jobs through MCP."""
-
-#     graph = build_job_search_graph()
-
-#     result = graph.invoke(
-#         {
-#             "query": "Python",
-#             "location": "Bangalore",
-#         }
-#     )
-
-#     assert "jobs" in result
-#     assert result["jobs"]
-
-#     first_job = result["jobs"][0]
-
-#     assert "title" in first_job
-#     assert "company" in first_job
-#     assert "location" in first_job
-#     assert "url" in first_job
-
 import json
 import asyncio
 from app.workflows.job_search_workflow import build_job_search_graph
@@ -34,47 +9,10 @@ from app.models.resume import(
     Skill,
 )
 
-
-class FakeLLMClient:
-    """Fake LLM client for job-ranking tests."""
-
-    def generate(self, prompt: str) -> str:
-        """Return deterministic ranking JSON."""
-
-        return json.dumps(
-            {
-                "recommendations": [
-                {
-                    "job_role": "Python AI Engineer",
-                    "company": "Example AI Labs",
-                    "description": (
-                    "Build AI applications using Python, "
-                    "FastAPI, LangGraph and LLM APIs."
-                    ),
-                    "experience": "2+ years",
-                    "skills_required": [
-                        "Python",
-                        "FastAPI",
-                        "LangGraph",
-                    ],
-                    "location": "Bangalore",
-                    "salary": "₹10-15 LPA",
-                    "url": (
-                        "https://example.com/jobs/"
-                        "python-ai-engineer"
-                    ),
-                    "relevance_score": 92,
-                    "reasons": [
-                        "Strong Python and FastAPI alignment."
-                        ],
-                    }
-                ]
-            }
-        )
-
-
 def test_job_search_workflow():
     """Job search workflow should retrieve and rank jobs."""
+
+    graph = build_job_search_graph()
 
     resume = ResumeAnalysis(
         contact=ContactInfo(name="Test User"),
@@ -94,11 +32,6 @@ def test_job_search_workflow():
         ],
     )
 
-
-    graph = build_job_search_graph(
-        llm_client=FakeLLMClient(),
-    )
-
     result = asyncio.run(
     graph.ainvoke(
             {
@@ -110,10 +43,11 @@ def test_job_search_workflow():
     )
 
     assert result["jobs"]
-    assert result["recommendations"].recommendations
-    assert (
-        result["recommendations"]
-        .recommendations[0]
-        .relevance_score
-        == 92
-    )
+
+    job = result["jobs"][0]
+
+    assert job["title"]
+    assert job["company"]
+    assert job["location"]
+    assert job["description"]
+    assert job["url"]

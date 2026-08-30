@@ -15,4 +15,4 @@ def create_llm_client():
     if settings.llm_mode.lower() == "fake":
         return FakeLLMClient()
 
-    return LLMClient(settings=settings)
+    return LLMClient()

@@ -1,47 +1,12 @@
-"""
-MCP server for Agentic Job Copilot.
-"""
+import os
 
+import requests
 from mcp.server import MCPServer
+from dotenv import load_dotenv
 
+load_dotenv()
 
 mcp = MCPServer("Job Copilot Tools")
-
-
-JOBS = [
-    {
-        "title": "Python AI Engineer",
-        "company": "Example AI Labs",
-        "location": "Bangalore",
-        "description": (
-            "Build AI applications using Python, FastAPI, "
-            "LangGraph and LLM APIs."
-        ),
-        "url": "https://example.com/jobs/python-ai-engineer",
-        "salary": "₹10-15 LPA",
-    },
-    {
-        "title": "GenAI Engineer",
-        "company": "Cloud AI Systems",
-        "location": "Hyderabad",
-        "description": (
-            "Develop RAG pipelines, agentic workflows and "
-            "MCP integrations."
-        ),
-        "url": "https://example.com/jobs/genai-engineer",
-        "salary": "₹12-18 LPA",
-    },
-    {
-        "title": "Backend Python Developer",
-        "company": "Tech Solutions",
-        "location": "Pune",
-        "description": (
-            "Develop REST APIs using Python, FastAPI and PostgreSQL."
-        ),
-        "url": "https://example.com/jobs/python-backend",
-        "salary": "₹8-12 LPA",
-    },
-]
 
 
 @mcp.tool()
@@ -49,32 +14,73 @@ def search_jobs(
     query: str,
     location: str = "",
 ) -> list[dict[str, str]]:
-    """
-    Search available jobs by keyword and location.
+    """Search real jobs using the Adzuna API."""
 
-    The tool returns only the fields required by Job Copilot.
-    """
+    app_id = os.getenv("ADZUNA_APP_ID")
+    app_key = os.getenv("ADZUNA_APP_KEY")
 
-    query_lower = query.lower()
-    location_lower = location.lower()
-
-    results = []
-
-    for job in JOBS:
-        matches_query = (
-            query_lower in job["title"].lower()
-            or query_lower in job["description"].lower()
+    if not app_id or not app_key:
+        raise RuntimeError(
+            "ADZUNA_APP_ID and ADZUNA_APP_KEY must be configured."
         )
 
-        matches_location = (
-            not location_lower
-            or location_lower in job["location"].lower()
+    response = requests.get(
+        "https://api.adzuna.com/v1/api/jobs/in/search/1",
+        params={
+            "app_id": app_id,
+            "app_key": app_key,
+            "results_per_page": 10,
+            "what": query,
+            "where": location,
+            "content-type": "application/json",
+        },
+        timeout=15,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    jobs = []
+
+    for job in data.get("results", []):
+        company = job.get("company", {})
+        job_location = job.get("location", {})
+
+        salary_min = job.get("salary_min")
+        salary_max = job.get("salary_max")
+
+        if salary_min and salary_max:
+            salary = f"{salary_min} - {salary_max}"
+        elif salary_min:
+            salary = f"{salary_min}+"
+        else:
+            salary = ""
+
+        jobs.append(
+            {
+                "title": job.get("title", ""),
+                "company": company.get(
+                    "display_name",
+                    "",
+                ),
+                "location": job_location.get(
+                    "display_name",
+                    "",
+                ),
+                "description": job.get(
+                    "description",
+                    "",
+                ),
+                "url": job.get(
+                    "redirect_url",
+                    "",
+                ),
+                "salary": salary,
+            }
         )
 
-        if matches_query and matches_location:
-            results.append(job)
-
-    return results
+    return jobs
 
 
 if __name__ == "__main__":

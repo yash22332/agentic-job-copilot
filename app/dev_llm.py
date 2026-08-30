@@ -14,38 +14,54 @@ class FakeLLMClient:
         """Return deterministic responses for local development."""
 
         if "Job Ranking" in prompt:
+            jobs_text = prompt.split(
+                "Jobs:",
+                1,
+            )[1].strip()
+
+            jobs = json.loads(jobs_text)
+
+            recommendations = []
+
+            for job in jobs:
+                recommendations.append(
+                    {
+                        "job_role": job.get("title", ""),
+                        "company": job.get("company", ""),
+                        "description": job.get(
+                            "description",
+                            "",
+                        ),
+                        "experience": "",
+                        "skills_required": [],
+                        "location": job.get(
+                            "location",
+                            "",
+                        ),
+                        "salary": job.get(
+                            "salary",
+                            "",
+                        ),
+                        "url": job.get("url", ""),
+                        "relevance_score": 80,
+                        "reasons": [
+                            "Job retrieved from the live job source."
+                        ],
+                    }
+                )
+
+            recommendations.sort(
+                key=lambda job: job["relevance_score"],
+                reverse=True,
+            )
+
             return json.dumps(
                 {
-                    "recommendations": [
-                        {
-                            "job_role": "Python AI Engineer",
-                            "company": "Example AI Labs",
-                            "description": (
-                                "Build AI applications using Python, "
-                                "FastAPI, LangGraph and LLM APIs."
-                            ),
-                            "experience": "2+ years",
-                            "skills_required": [
-                                "Python",
-                                "FastAPI",
-                                "LangGraph",
-                            ],
-                            "location": "Bangalore",
-                            "salary": "₹10-15 LPA",
-                            "url": (
-                                "https://example.com/jobs/"
-                                "python-ai-engineer"
-                            ),
-                            "relevance_score": 92,
-                            "reasons": [
-                                "Strong Python and FastAPI alignment."
-                            ],
-                        }
-                    ]
+                    "recommendations": recommendations,
                 }
             )
 
-        if "Job Match" in prompt:
+        if "Job Match Analysis" in prompt:
             return json.dumps(
                 {
                     "match_score": 85,

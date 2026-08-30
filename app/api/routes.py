@@ -14,6 +14,8 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from app.services.resume_service import ResumeService
 from app.workflows.job_search_workflow import build_job_search_graph
 from app.llm_factory import create_llm_client
+from app.models.resume import ResumeAnalysis
+
 router = APIRouter()
 
 UPLOAD_DIR = Path("data/uploads")
@@ -115,46 +117,29 @@ async def match_job(
 
 @router.post("/jobs/search")
 async def search_jobs_route(
-    file: UploadFile = File(...),
     query: str = Form(...),
     location: str = Form(""),
-    resume_service: ResumeService = Depends(get_resume_service),
+    resume: str = Form(...),
 ):
-    """Search and rank jobs against an uploaded resume."""
-
-    file_extension = Path(file.filename or "").suffix.lower()
-
-    if file_extension != ".pdf":
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF resumes are supported.",
-        )
-
-    file_path = UPLOAD_DIR / f"{uuid4()}{file_extension}"
-
-    contents = await file.read()
-    file_path.write_bytes(contents)
+    """Search jobs using an already-analyzed resume."""
 
     try:
-        resume = resume_service.analyze(str(file_path))
+        ResumeAnalysis.model_validate_json(resume)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid resume data: {exc}",
+        ) from exc
 
-        graph = build_job_search_graph(
-            llm_client=create_llm_client(),
-        )
+    graph = build_job_search_graph()
 
-        result = await graph.ainvoke(
-            {
-                "query": query,
-                "location": location,
-                "resume": resume,
-            }
-        )
-
-        return {
-            "recommendations": (
-            result["recommendations"].recommendations
-            )
+    result = await graph.ainvoke(
+        {
+            "query": query,
+            "location": location,
         }
+    )
 
-    finally:
-        file_path.unlink(missing_ok=True)
+    return {
+        "jobs": result["jobs"],
+    }
